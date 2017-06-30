@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="module_logic" default="compile.module.logic">
+  <dirname property="module.logic.basedir" file="${ant.file.module_logic}"/>
+  
+  <property name="module.jdk.home.logic" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.logic" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.logic" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.logic" value="-encoding UTF-8 -source 8 -target 8 ${compiler.args}"/>
+  
+  <property name="logic.output.dir" value="${module.logic.basedir}/../out/production/Logic"/>
+  <property name="logic.testoutput.dir" value="${module.logic.basedir}/../out/test/Logic"/>
+  
+  <path id="logic.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="logic.module.production.classpath">
+    <path refid="${module.jdk.classpath.logic}"/>
+    <pathelement location="${utils.output.dir}"/>
+  </path>
+  
+  <path id="logic.runtime.production.module.classpath">
+    <pathelement location="${logic.output.dir}"/>
+    <path refid="utils.runtime.production.module.classpath"/>
+  </path>
+  
+  <path id="logic.module.classpath">
+    <path refid="${module.jdk.classpath.logic}"/>
+    <pathelement location="${logic.output.dir}"/>
+    <pathelement location="${utils.testoutput.dir}"/>
+    <pathelement location="${utils.output.dir}"/>
+  </path>
+  
+  <path id="logic.runtime.module.classpath">
+    <pathelement location="${logic.testoutput.dir}"/>
+    <pathelement location="${logic.output.dir}"/>
+    <path refid="utils.runtime.module.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.logic">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.logic">
+    <patternset refid="excluded.from.module.logic"/>
+  </patternset>
+  
+  <path id="logic.module.sourcepath">
+    <dirset dir="${module.logic.basedir}">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.logic" depends="compile.module.logic.production,compile.module.logic.tests" description="Compile module Logic"/>
+  
+  <target name="compile.module.logic.production" depends="register.custom.compilers,compile.module.utils" description="Compile module Logic; production classes">
+    <mkdir dir="${logic.output.dir}"/>
+    <javac2 destdir="${logic.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.logic}/javac">
+      <compilerarg line="${compiler.args.logic}"/>
+      <bootclasspath refid="logic.module.bootclasspath"/>
+      <classpath refid="logic.module.production.classpath"/>
+      <src refid="logic.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.logic"/>
+    </javac2>
+    
+    <copy todir="${logic.output.dir}">
+      <fileset dir="${module.logic.basedir}/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.logic.tests" depends="register.custom.compilers,compile.module.logic.production" description="compile module Logic; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.logic" description="cleanup module">
+    <delete dir="${logic.output.dir}"/>
+    <delete dir="${logic.testoutput.dir}"/>
+  </target>
+</project>
