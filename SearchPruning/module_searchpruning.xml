@@ -8,8 +8,8 @@
   
   <property name="compiler.args.searchpruning" value="-encoding UTF-8 -source 8 -target 8 ${compiler.args}"/>
   
-  <property name="searchpruning.output.dir" value="${module.searchpruning.basedir}/../out/production/SearchPruning"/>
-  <property name="searchpruning.testoutput.dir" value="${module.searchpruning.basedir}/../out/test/SearchPruning"/>
+  <property name="searchpruning.output.dir" value="${module.searchpruning.basedir}/out/production/SearchPruning"/>
+  <property name="searchpruning.testoutput.dir" value="${module.searchpruning.basedir}/out/test/SearchPruning"/>
   
   <path id="searchpruning.module.bootclasspath">
     <!-- Paths to be included in compilation bootclasspath -->
@@ -17,18 +17,16 @@
   
   <path id="searchpruning.module.production.classpath">
     <path refid="${module.jdk.classpath.searchpruning}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
     <pathelement location="${logic.output.dir}"/>
-    <pathelement location="${structurelearning.output.dir}"/>
-    <pathelement location="${lrnn.output.dir}"/>
     <pathelement location="${utils.output.dir}"/>
     <pathelement location="${logicstuff.output.dir}"/>
   </path>
   
   <path id="searchpruning.runtime.production.module.classpath">
     <pathelement location="${searchpruning.output.dir}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
     <path refid="logic.runtime.production.module.classpath"/>
-    <path refid="structurelearning.runtime.production.module.classpath"/>
-    <path refid="lrnn.runtime.production.module.classpath"/>
     <path refid="utils.runtime.production.module.classpath"/>
     <path refid="logicstuff.runtime.production.module.classpath"/>
   </path>
@@ -36,12 +34,9 @@
   <path id="searchpruning.module.classpath">
     <path refid="${module.jdk.classpath.searchpruning}"/>
     <pathelement location="${searchpruning.output.dir}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
     <pathelement location="${logic.testoutput.dir}"/>
     <pathelement location="${logic.output.dir}"/>
-    <pathelement location="${structurelearning.testoutput.dir}"/>
-    <pathelement location="${structurelearning.output.dir}"/>
-    <pathelement location="${lrnn.testoutput.dir}"/>
-    <pathelement location="${lrnn.output.dir}"/>
     <pathelement location="${utils.testoutput.dir}"/>
     <pathelement location="${utils.output.dir}"/>
     <pathelement location="${logicstuff.testoutput.dir}"/>
@@ -51,9 +46,8 @@
   <path id="searchpruning.runtime.module.classpath">
     <pathelement location="${searchpruning.testoutput.dir}"/>
     <pathelement location="${searchpruning.output.dir}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
     <path refid="logic.runtime.module.classpath"/>
-    <path refid="structurelearning.runtime.module.classpath"/>
-    <path refid="lrnn.runtime.module.classpath"/>
     <path refid="utils.runtime.module.classpath"/>
     <path refid="logicstuff.runtime.module.classpath"/>
   </path>
@@ -76,7 +70,7 @@
   
   <target name="compile.module.searchpruning" depends="compile.module.searchpruning.production,compile.module.searchpruning.tests" description="Compile module SearchPruning"/>
   
-  <target name="compile.module.searchpruning.production" depends="register.custom.compilers,compile.module.logic,compile.module.structurelearning,compile.module.lrnn,compile.module.utils,compile.module.logicstuff" description="Compile module SearchPruning; production classes">
+  <target name="compile.module.searchpruning.production" depends="register.custom.compilers,compile.module.logic,compile.module.utils,compile.module.logicstuff" description="Compile module SearchPruning; production classes">
     <mkdir dir="${searchpruning.output.dir}"/>
     <javac2 destdir="${searchpruning.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.searchpruning}/javac">
       <compilerarg line="${compiler.args.searchpruning}"/>

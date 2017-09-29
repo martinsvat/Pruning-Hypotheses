@@ -82,6 +82,7 @@ public class MEDataset implements DatasetInterface {
         int retVal = 0;
         if (queries == null) {
             Clause c = LogicUtils.flipSigns(hc.toClause());
+            // this should be foreach i in checkOnly -- it's an appendix from the time when checkOnly was not an input argument... however, it should have minimal time-delays in comparison with the version without checkOnly (and thus multiple theta-tests which are doomed in advance later in the search)
             for (int i = 0; i < examples.size(); i++) {
                 if (!checkOnly.contains(i)) {
                     continue;
@@ -94,6 +95,7 @@ public class MEDataset implements DatasetInterface {
                 }
             }
         } else {
+            // this should be foreach i in checkOnly -- it's an appendix from the time when checkOnly was not an input argument... however, it should have minimal time-delays in comparison with the version without checkOnly (and thus multiple theta-tests which are doomed in advance later in the search)
             for (int i = 0; i < examples.size(); i++) {
                 if (!checkOnly.contains(i)) {
                     continue;

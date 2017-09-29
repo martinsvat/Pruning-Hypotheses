@@ -25,14 +25,14 @@ public class Main {
      * @throws InterruptedException
      */
     public static void main(String[] args) throws IOException, InterruptedException {
-        args = new String[]{"./datasets/nci_transformed/gi50_screen_HOP_18.txt", "breadth" ,"3" ,"6" ,"2" ,"1" ,"0"};
+        //args = new String[]{"./datasets/nci_transformed/gi50_screen_HOP_18.txt", "breadth" ,"3" ,"6" ,"2" ,"1" ,"0"};
         String dataPath = args[0];
         String method = args[1];
         int maxLength = Integer.valueOf(args[2]);
         int maxVariables = Integer.valueOf(args[3]);
 
-        //System.out.println("add sleeep at start!!!!!!!!!!!!!");
-        //Thread.sleep(2 * 60 * 1000);
+        System.out.println("add sleeep at start!!!!!!!!!!!!!");
+        Thread.sleep(2 * 60 * 1000);
 
         int maxDepth = 6;
         int minFrequency = 1;

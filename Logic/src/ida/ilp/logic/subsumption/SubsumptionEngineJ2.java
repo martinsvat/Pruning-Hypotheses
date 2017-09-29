@@ -537,36 +537,37 @@ public class SubsumptionEngineJ2 {
     }
 
     private int[] variableOrder(ClauseC c, ClauseE e, int fv, boolean ignoreSingletons){
-        if (c.containedIn.length == 0){
-            return new int[]{};
-        }
-        if (this.learnVariableOrder && this.firstVariableOrder != null){
-            int[] ret = this.firstVariableOrder;
-            this.firstVariableOrder = null;
-            this.lastVariableOrder = ret;
-            return ret;
-        }
-        //todo - move to ClausE, this is unnecessarily slow
-        Counters<Integer> predicateCounts = new Counters<Integer>();
-        for (int i = 0; i < e.literals.length; i += e.literals[i+1]+2){
-            predicateCounts.increment(e.literals[i]);
-        }
-        List<Integer> variableOrder = new ArrayList<Integer>();
-        double[] weights = new double[c.containedIn.length];
-        int index = 0;
-        for (IntegerSet containedIn : c.containedIn){
-            weights[index] = containedIn.size();
-            weights[index] /= (double)c.variableDomains[index].size();
-            index++;
-        }
-        double[] heuristic1 = new double[c.containedIn.length];
-        if (fv == -1){
-            CustomRandomGenerator crg = new CustomRandomGenerator(weights, random);
-            variableOrder.add(crg.nextInt());
-        } else {
-            variableOrder.add(fv);
-        }
-        heuristic1[variableOrder.get(0)] = -1;
+        try {
+            if (c.containedIn.length == 0) {
+                return new int[]{};
+            }
+            if (this.learnVariableOrder && this.firstVariableOrder != null) {
+                int[] ret = this.firstVariableOrder;
+                this.firstVariableOrder = null;
+                this.lastVariableOrder = ret;
+                return ret;
+            }
+            //todo - move to ClausE, this is unnecessarily slow
+            Counters<Integer> predicateCounts = new Counters<Integer>();
+            for (int i = 0; i < e.literals.length; i += e.literals[i + 1] + 2) {
+                predicateCounts.increment(e.literals[i]);
+            }
+            List<Integer> variableOrder = new ArrayList<Integer>();
+            double[] weights = new double[c.containedIn.length];
+            int index = 0;
+            for (IntegerSet containedIn : c.containedIn) {
+                weights[index] = containedIn.size();
+                weights[index] /= (double) c.variableDomains[index].size();
+                index++;
+            }
+            double[] heuristic1 = new double[c.containedIn.length];
+            if (fv == -1) {
+                CustomRandomGenerator crg = new CustomRandomGenerator(weights, random);
+                variableOrder.add(crg.nextInt());
+            } else {
+                variableOrder.add(fv);
+            }
+            heuristic1[variableOrder.get(0)] = -1;
         /*try{
             heuristic1[variableOrder.get(0)] = -1;
         }catch (Exception ee){
@@ -574,36 +575,41 @@ public class SubsumptionEngineJ2 {
             throw new IllegalStateException("" + ee);
         }*/
 
-        for (int ci : c.containedIn[variableOrder.get(0)].values()){
-            for (int i = 0; i < c.literals[ci+1]; i++){
-                if (heuristic1[c.literals[ci+3+i]] != -1){
-                    heuristic1[c.literals[ci+3+i]] += 1.0*weights[c.literals[ci+3+i]];
-                }
-            }
-        }
-        for (int i = 1; i < heuristic1.length; i++){
-            //System.out.println(VectorUtils.doubleArrayToString(heuristic1));
-            int selected = maxIndexWithTieBreaking(heuristic1);
-            heuristic1[selected] = -1;
-            if (!ignoreSingletons || c.occurrences[selected] > 1){
-                variableOrder.add(selected);
-            }
-            for (int ci : c.containedIn[selected].values()){
-                for (int j = 0; j < c.literals[ci+1]; j++){
-                    if (heuristic1[c.literals[ci+3+j]] != -1){
-                        double count = predicateCounts.get(c.literals[ci]);
-                        if (count == 0){
-                            //todo - handle separately special predicateNames and negations
-                            count = 1e8;
-                        }
-                        heuristic1[c.literals[ci+3+j]] += 1.0*weights[c.literals[ci+3+j]]/count;
+            for (int ci : c.containedIn[variableOrder.get(0)].values()) {
+                for (int i = 0; i < c.literals[ci + 1]; i++) {
+                    if (heuristic1[c.literals[ci + 3 + i]] != -1) {
+                        heuristic1[c.literals[ci + 3 + i]] += 1.0 * weights[c.literals[ci + 3 + i]];
                     }
                 }
             }
-        }
+            for (int i = 1; i < heuristic1.length; i++) {
+                //System.out.println(VectorUtils.doubleArrayToString(heuristic1));
+                int selected = maxIndexWithTieBreaking(heuristic1);
+                heuristic1[selected] = -1;
+                if (!ignoreSingletons || c.occurrences[selected] > 1) {
+                    variableOrder.add(selected);
+                }
+                for (int ci : c.containedIn[selected].values()) {
+                    for (int j = 0; j < c.literals[ci + 1]; j++) {
+                        if (heuristic1[c.literals[ci + 3 + j]] != -1) {
+                            double count = predicateCounts.get(c.literals[ci]);
+                            if (count == 0) {
+                                //todo - handle separately special predicateNames and negations
+                                count = 1e8;
+                            }
+                            heuristic1[c.literals[ci + 3 + j]] += 1.0 * weights[c.literals[ci + 3 + j]] / count;
+                        }
+                    }
+                }
+            }
 
-        this.lastVariableOrder = VectorUtils.toIntegerArray(variableOrder);
-        return this.lastVariableOrder;
+            this.lastVariableOrder = VectorUtils.toIntegerArray(variableOrder);
+            return this.lastVariableOrder;
+        }catch(Exception exception){
+            System.out.println("problem here");
+            exception.printStackTrace();
+        }
+        return null;
     }
 
     /**

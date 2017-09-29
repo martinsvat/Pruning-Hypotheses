@@ -16,6 +16,7 @@
 package ida.ilp.logic.subsumption;
 
 import ida.ilp.logic.*;
+import ida.ilp.logic.special.IsoClauseWrapper;
 import ida.utils.IntegerFunction;
 import ida.utils.Sugar;
 import ida.utils.VectorUtils;
@@ -30,6 +31,8 @@ import java.util.*;
  * @author ondra
  */
 public class Matching {
+
+    private boolean debugSubsumption; // debug subsumption
 
     public final static int THETA_SUBSUMPTION = SubsumptionEngineJ2.THETA, OI_SUBSUMPTION = SubsumptionEngineJ2.OBJECT_IDENTITY;
 
@@ -73,10 +76,21 @@ public class Matching {
      * @param examples list of examples (Clauses)
      */
     public Matching(SubsumptionEngineJ2 engine, List<Clause> examples) {
+        //Clause debugedClause = Clause.parse("ar_bond(18, 15), car(18), car(15), ar_bond(15, 18), 1_bond(16, 13), c3(16), c3(13), 1_bond(13, 16), 1_bond(2, 1), c3(2), c3(1), 1_bond(1, 2), 1_bond(16, 17), car(17), 1_bond(17, 16), 1_bond(8, 4), c1(8), c3(4), 1_bond(4, 8), ar_bond(20, 21), car(20), car(21), ar_bond(21, 20), ar_bond(19, 17), car(19), ar_bond(17, 19), 1_bond(3, 2), c3(3), 1_bond(2, 3), 1_bond(6, 3), c3(6), 1_bond(3, 6), 3_bond(14, 8), c1(14), 3_bond(8, 14), 1_bond(5, 2), c3(5), 1_bond(2, 5), ar_bond(17, 15), ar_bond(15, 17), 1_bond(7, 10), c3(7), c3(10), 1_bond(10, 7), 1_bond(7, 3), 1_bond(3, 7), 1_bond(11, 5), c3(11), 1_bond(5, 11), ar_bond(20, 18), ar_bond(18, 20), ar_bond(21, 19), ar_bond(19, 21), 1_bond(22, 21), o2(22), 1_bond(21, 22), 1_bond(11, 12), c3(12), 1_bond(12, 11), 1_bond(4, 2), 1_bond(2, 4), 1_bond(10, 4), 1_bond(4, 10), 1_bond(9, 4), o3(9), 1_bond(4, 9), 1_bond(13, 6), 1_bond(6, 13), 1_bond(15, 12), 1_bond(12, 15), 1_bond(12, 6), 1_bond(6, 12)"); // debug subsumption
+        Clause debugedClause = Clause.parse(""); // debug subsumption
+        IsoClauseWrapper iso = new IsoClauseWrapper(debugedClause); // debug subsumption
+
+
         this.engine = engine;
         this.engine.setRestartSequence(new IntegerFunction.Exponential(50, 2, 500));
         for (Clause e : examples) {
             this.examples.add(this.engine.new ClauseE(e));
+
+            // debug subsumption
+            IsoClauseWrapper ex = new IsoClauseWrapper(e);
+            if(ex.equals(iso)){
+                this.debugSubsumption = true;
+            }
         }
     }
 
@@ -337,6 +351,11 @@ public class Matching {
     }
 
     public Boolean subsumption(Clause c, int index) {
+        // // debug subsumption
+        if(this.debugSubsumption){
+            System.out.println("\t" + c);
+        }
+
         return this.subsumption(this.createClauseC(c), this.examples.get(index));
     }
 

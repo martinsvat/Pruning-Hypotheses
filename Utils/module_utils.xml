@@ -8,8 +8,8 @@
   
   <property name="compiler.args.utils" value="-encoding UTF-8 -source 8 -target 8 ${compiler.args}"/>
   
-  <property name="utils.output.dir" value="${module.utils.basedir}/../out/production/Utils"/>
-  <property name="utils.testoutput.dir" value="${module.utils.basedir}/../out/test/Utils"/>
+  <property name="utils.output.dir" value="${module.utils.basedir}/../SearchPruning/out/production/Utils"/>
+  <property name="utils.testoutput.dir" value="${module.utils.basedir}/../SearchPruning/out/test/Utils"/>
   
   <path id="utils.module.bootclasspath">
     <!-- Paths to be included in compilation bootclasspath -->
@@ -17,20 +17,24 @@
   
   <path id="utils.module.production.classpath">
     <path refid="${module.jdk.classpath.utils}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
   </path>
   
   <path id="utils.runtime.production.module.classpath">
     <pathelement location="${utils.output.dir}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
   </path>
   
   <path id="utils.module.classpath">
     <path refid="${module.jdk.classpath.utils}"/>
     <pathelement location="${utils.output.dir}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
   </path>
   
   <path id="utils.runtime.module.classpath">
     <pathelement location="${utils.testoutput.dir}"/>
     <pathelement location="${utils.output.dir}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
   </path>
   
   

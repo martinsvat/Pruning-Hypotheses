@@ -22,7 +22,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 /**
  *
- * Class for datastructure which roughly coprresponds to java.util.Map<R,java.util.Set<S>>.
+ * Class for datastructure which roughly corresponds to java.util.Map<R,java.util.Set<S>>.
  * 
  * @param <R> type of key-elements
  * @param <S> type of value-elements

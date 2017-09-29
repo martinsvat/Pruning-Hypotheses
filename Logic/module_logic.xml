@@ -8,8 +8,8 @@
   
   <property name="compiler.args.logic" value="-encoding UTF-8 -source 8 -target 8 ${compiler.args}"/>
   
-  <property name="logic.output.dir" value="${module.logic.basedir}/../out/production/Logic"/>
-  <property name="logic.testoutput.dir" value="${module.logic.basedir}/../out/test/Logic"/>
+  <property name="logic.output.dir" value="${module.logic.basedir}/../SearchPruning/out/production/Logic"/>
+  <property name="logic.testoutput.dir" value="${module.logic.basedir}/../SearchPruning/out/test/Logic"/>
   
   <path id="logic.module.bootclasspath">
     <!-- Paths to be included in compilation bootclasspath -->
@@ -17,17 +17,20 @@
   
   <path id="logic.module.production.classpath">
     <path refid="${module.jdk.classpath.logic}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
     <pathelement location="${utils.output.dir}"/>
   </path>
   
   <path id="logic.runtime.production.module.classpath">
     <pathelement location="${logic.output.dir}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
     <path refid="utils.runtime.production.module.classpath"/>
   </path>
   
   <path id="logic.module.classpath">
     <path refid="${module.jdk.classpath.logic}"/>
     <pathelement location="${logic.output.dir}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
     <pathelement location="${utils.testoutput.dir}"/>
     <pathelement location="${utils.output.dir}"/>
   </path>
@@ -35,6 +38,7 @@
   <path id="logic.runtime.module.classpath">
     <pathelement location="${logic.testoutput.dir}"/>
     <pathelement location="${logic.output.dir}"/>
+    <path refid="library.org.sat4j.core.classpath"/>
     <path refid="utils.runtime.module.classpath"/>
   </path>
   

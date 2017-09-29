@@ -14,37 +14,42 @@ import ida.ilp.logic.*;
 import ida.ilp.logic.special.IsoClauseWrapper;
 import ida.ilp.logic.subsumption.Matching;
 import ida.utils.Sugar;
+import ida.utils.collections.MultiMap;
 import ida.utils.tuples.Pair;
-import logicStuff.learning.datasets.Dataset;
 import logicStuff.learning.constraints.ShortConstraintLearner;
+import logicStuff.learning.datasets.Dataset;
+import logicStuff.learning.saturation.RuleSaturator;
 import logicStuff.theories.TheorySimplifier;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
  * Created by ondrejkuzelka on 01/02/17.
  * <p>
- * Version with caching and pruning hacks, which should be faster than the original (MS). All samples are tested on theta-subsumption, tested clause is cached (so multiple testing of a clause should not occur), and being minimal is computed by querying cached parents.
+ * Version with caching, pruning hacks, extended by using saturation' pruning within the constraint learner (MS).
+ * All samples are tested on theta-subsumption, tested clause is cached (so multiple testing of a clause should not occur),
+ * and being minimal is computed by querying cached parents.
  */
 
-public class MultiDatasetShortConstraintLearnerFaster {
+public class EnhancedMultiDatasetShortConstraintLearner {
 
     private int maxVariables = 5;
 
-    private int maxLength = 2;
+    private int maxLiterals = 2;
 
     private List<Dataset> datasets;
 
     private Set<Pair<String, Integer>> allPredicates;
 
 
-    public MultiDatasetShortConstraintLearnerFaster(List<Dataset> datasets, int maxLength, int maxVariables) {
+    public EnhancedMultiDatasetShortConstraintLearner(List<Dataset> datasets, int maxLiterals, int maxVariables) {
         this.datasets = datasets;
         this.allPredicates = this.datasets.stream()
                 .map(dataset -> dataset.allPredicates())
                 .collect(HashSet::new, HashSet::addAll, HashSet::addAll);
-        this.maxLength = maxLength;
+        this.maxLiterals = maxLiterals;
         this.maxVariables = maxVariables;
     }
 
@@ -55,28 +60,28 @@ public class MultiDatasetShortConstraintLearnerFaster {
      * @return
      */
     public List<Clause> learnConstraints() {
+        System.out.println("zkontrolovat ze se ne/maze cache rodicu, prislo mi ze by to kvuli tomu nemuselo fungovat)" +
+                "\n" +
+                "snad ten pristup pouzivani saturaci po 'vrstvach' nic nerozbije, radsi to zkontrolovat");
+
         Map<IsoClauseWrapper, Set<Dataset>> cache = new HashMap<>();
-        Set<IsoClauseWrapper> parentsCache = new HashSet<>();
 
         Set<IsoClauseWrapper> constraints = new HashSet<IsoClauseWrapper>();
-        Set<IsoClauseWrapper> beam = new HashSet<IsoClauseWrapper>();
+        MultiMap<Integer, IsoClauseWrapper> levelWiseOpenList = new MultiMap<>();
         IsoClauseWrapper empty = new IsoClauseWrapper(new Clause());
-        beam.add(empty);
+        addToOpenList(empty, levelWiseOpenList);
         addAllToCache(empty, datasets, cache);
 
-        parentsCache.add(empty);
         Set<IsoClauseWrapper> processed = new HashSet<>();
-        for (int i = 1; i <= maxLength; i++) {
-            Map<IsoClauseWrapper, Set<Dataset>> newCache = new HashMap<>();
-            Set<IsoClauseWrapper> newBeam = new HashSet<IsoClauseWrapper>();
-            for (IsoClauseWrapper c : beam) {
-                List<Clause> refinements = refinements(c.getOriginalClause());
-                for (Clause cand : refinements) {
+        for (int currentLevel = 0; currentLevel < maxLiterals; currentLevel++) {
+            List<Clause> currentConstraints = constraints.stream().map(IsoClauseWrapper::getOriginalClause).collect(Collectors.toList());
+            for (IsoClauseWrapper openedClause : levelWiseOpenList.get(currentLevel)) {
+                for (Clause cand : refinements(openedClause.getOriginalClause(),currentConstraints)) {
                     IsoClauseWrapper canonicCandidate = new IsoClauseWrapper(cand);
                     if (processed.contains(canonicCandidate)) {
                         continue;
                     }
-                    Pair<Boolean, List<Dataset>> pair = matchesAny(cand, c, cache);
+                    Pair<Boolean, List<Dataset>> pair = matchesAny(cand, openedClause, cache);
                     boolean matchesCondition = !pair.r;
                     if (matchesCondition) {
                         /* to check that minimal can be implemented by parents caching, use 
@@ -85,23 +90,31 @@ public class MultiDatasetShortConstraintLearnerFaster {
                         boolean minimalCondition = count && min;
                         if (minimalCondition)...
                         */
-                        if (allParentsInCache(cand,parentsCache)) {
+                        if (allParentsInCache(cand, cache.keySet())) { // ok tak tady doufam, ze ten dotaz do setu bezi podle hash pocitani a potom OI subsumpci, jinak to asi nefunguje...
+                            // a taky to mapovani na hash
                             constraints.add(new IsoClauseWrapper(LogicUtils.flipSigns(cand)));
                         }
-                    } else if (cand.countLiterals() < maxLength) {
-                        newBeam.add(canonicCandidate);
-                        Set<Dataset> removed = new HashSet<>(cache.get(c));
+                    } else if (cand.countLiterals() < maxLiterals) {
+                        addToOpenList(canonicCandidate,levelWiseOpenList);
+                        Set<Dataset> removed = new HashSet<>(cache.get(openedClause));
                         removed.removeAll(pair.s);
-                        intersectWithCache(canonicCandidate, removed, newCache,parentsCache);
-                    } else if (cand.countLiterals() != maxLength) { // just check, should never occure
-                        System.out.println("the last layer? " + cand.countLiterals() + " " + i + " " + maxLength);
+                        intersectWithCache(canonicCandidate, removed, cache);
+                    } else if (cand.countLiterals() != maxLiterals) { // just check, should never occur
+                        System.out.println("the last layer? " + cand.countLiterals() + " " + currentLevel + " " + maxLiterals);
                     }
                     processed.add(canonicCandidate);
                 }
             }
-            //System.out.println("level " + (i -1));
-            beam = newBeam;
-            cache = newCache;
+            levelWiseOpenList.remove(currentLevel); // GC
+            // for removing cache, one should use something like
+            Iterator<IsoClauseWrapper> iterator = cache.keySet().iterator();
+            while(iterator.hasNext()){
+                IsoClauseWrapper icw = iterator.next();
+                if(icw.getOriginalClause().countLiterals() < currentLevel){
+                    iterator.remove();
+                }
+            }
+            //System.out.println("level " + currentLevel);
         }
         int numVars = 0;
         Set<Clause> retVal = new HashSet<Clause>();
@@ -113,11 +126,15 @@ public class MultiDatasetShortConstraintLearnerFaster {
         List<Clause> theory = TheorySimplifier.simplify(retVal, numVars + 1);
         //System.out.println("theory size after simplification\t" + theory.size());
         return theory;
-        //return Sugar.listFromCollections(retVal);
+    }
+
+
+    private void addToOpenList(IsoClauseWrapper clause, MultiMap<Integer, IsoClauseWrapper> levelWiseOpenList) {
+        levelWiseOpenList.put(clause.getOriginalClause().countLiterals(), clause);
     }
 
     // equivalent method to minimal by querying cached parents
-    private boolean allParentsInCache(Clause cand,Set<IsoClauseWrapper> parentsCache) {
+    private boolean allParentsInCache(Clause cand, Set<IsoClauseWrapper> parentsCache) {
         for (Literal l : cand.literals()) {
             Clause shorther = new Clause(Sugar.collectionDifference(cand.literals(), l));
             if (!parentsCache.contains(new IsoClauseWrapper(shorther))) {
@@ -130,16 +147,15 @@ public class MultiDatasetShortConstraintLearnerFaster {
     /**
      * If the key is not in cache, then all the datasets are added to the cache. Otherwise intersection of cache.get(key) and datasets is inserted into the cache.
      * <p>
-     * Should help to prune number of subsumptions calls by gradually removing samples (Dataset) which were not theta-subsumed by predecessors of the clause (key). The idea is based on monotonicity (general to specific).
+     * This should help to prune number of subsumptions calls by gradually removing samples (Dataset) which were not theta-subsumed by predecessors of the clause (key). The idea is based on monotonicity (general to specific).
      *
      * @param key
      * @param datasets
      * @param cache
      */
-    private void intersectWithCache(IsoClauseWrapper key, Collection<Dataset> datasets, Map<IsoClauseWrapper, Set<Dataset>> cache, Set<IsoClauseWrapper>parentsCache) {
+    private void intersectWithCache(IsoClauseWrapper key, Collection<Dataset> datasets, Map<IsoClauseWrapper, Set<Dataset>> cache) {
         if (!cache.containsKey(key)) {
             addAllToCache(key, datasets, cache);
-            parentsCache.add(key);
         } else {
             Set<Dataset> intersection = new HashSet<>(cache.get(key));
             intersection.retainAll(datasets);
@@ -154,8 +170,15 @@ public class MultiDatasetShortConstraintLearnerFaster {
         cache.get(key).addAll(datasets);
     }
 
-    // matchesAny with caching all
-    private Pair<Boolean, List<Dataset>> matchesAny(Clause cand, IsoClauseWrapper parent, Map<IsoClauseWrapper, Set<Dataset>> cache) {
+
+    /**
+     * matchesAny with caching all
+     * @param candidate
+     * @param parent
+     * @param cache
+     * @return pair<b,l> where b is true iff there is at least one example (dataset) which is theta-subsumed by the candidate clause, false otherwise; and l is list of datasets which are subsumed by the given candidate clause
+     */
+    private Pair<Boolean, List<Dataset>> matchesAny(Clause candidate, IsoClauseWrapper parent, Map<IsoClauseWrapper, Set<Dataset>> cache) {
         Collection<Dataset> scount = datasets;
         if (cache.containsKey(parent)) {
             scount = cache.get(parent);
@@ -164,7 +187,7 @@ public class MultiDatasetShortConstraintLearnerFaster {
         boolean foundSome = false;
         List<Dataset> toRemove = Sugar.list();
         for (Dataset dataset : scount) {
-            if (dataset.matches(cand)) {
+            if (dataset.matches(candidate)) {
                 foundSome = true;
             } else {
                 toRemove.add(dataset);
@@ -193,13 +216,28 @@ public class MultiDatasetShortConstraintLearnerFaster {
         return true;
     }
 
-    private List<Clause> refinements(Clause clause) { // sem pridat informace naucene z constraints
+    /**
+     * returns saturated, non-equivalent refinements of the clause
+     * @param clause
+     * @param constraints
+     * @return
+     */
+    private List<Clause> refinements(Clause clause, List<Clause> constraints) { // sem pridat informace naucene z constraints
+        System.out.println("s vypnutymi saturacemi to funguje jako MultiDataset verze, nicmene s nimi to produkuje vice pravidel -- neni to tim, ze v kazdem kroku (urovni) se pouziva jina BDT???");
+        RuleSaturator saturator = RuleSaturator.create(constraints,Matching.OI_SUBSUMPTION);
+        //RuleSaturator saturator = RuleSaturator.create(Sugar.list(),Matching.OI_SUBSUMPTION);
         Set<IsoClauseWrapper> set = new HashSet<IsoClauseWrapper>();
         for (Pair<String, Integer> predicate : allPredicates) {
             for (Clause newClause : Sugar.union(refinements(clause, predicate, true), refinements(clause, predicate, false))) {
-                set.add(new IsoClauseWrapper(newClause));
+                Clause saturation = saturator.saturate(newClause);
+                if(null == saturation){
+                    // is this really what we want? do we want to prune it????????
+                    continue;
+                }
+                set.add(new IsoClauseWrapper(saturation));
             }
         }
+        // isomorphism checking
         List<Clause> retVal = new ArrayList<Clause>();
         for (IsoClauseWrapper icw : set) {
             retVal.add(icw.getOriginalClause());

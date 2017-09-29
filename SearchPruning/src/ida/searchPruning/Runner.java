@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class Runner {
 
     // in nanoseconds
-    private final static long OVERALL_LIMIT = 2 * 60 * 60 * 1000000000l;
+    private final static long OVERALL_LIMIT = 12 * 60 * 60 * 1000000000l;
     private final static long RULE_LEARNING_LIMIT = 2 * 60 * 1000000000l;
 
     // setting
@@ -80,6 +80,7 @@ public class Runner {
         runner.run(dataPath, method, maxLength, maxVariables, criterion, overallTime, dataPath, maxNegCovered, ruleLearningTime, maxDepth, minFrequency, fold);
     }
 
+    // ok, tohle je trochu nechutne
     private void run(String dataPath, String method, int maxLength, int maxVariables, Criterion criterion, TimeDog overallTime, String path, int maxNegCovered, TimeDog ruleLearningTime, int maxDepth, int minFrequency, final int userFold) throws IOException {
         File outputDir = createFolder(path + File.separator + method + "_" + maxLength + "_" + maxVariables + "_" + MAX_NODES + "_" + maxDepth + "_" + BEAM_WIDTH + "_" + minFrequency);
         MEDataset med = loadDataset(dataPath);
@@ -313,6 +314,7 @@ public class Runner {
         };
     }
 
+    // delegate to utils
     private void writeData(Set<SearchNodeInfo> hypotheses, PrintWriter printWriter) {
         StringBuilder sb = new StringBuilder();
         hypotheses.forEach(hypothesis -> sb.append("\n").append(hypothesis.getRule()));
@@ -320,6 +322,7 @@ public class Runner {
         printWriter.close();
     }
 
+    // delegate to utils
     private File createFolder(String path) {
         while (path.contains(".")) {
             path = path.replace('.', '_');
